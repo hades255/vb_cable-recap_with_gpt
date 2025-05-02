@@ -1,3 +1,12 @@
 VBCABLE_Driver_Pack45
 __pycache__
 whisper_env
+.env
+*test*
+node_modules
+package-lock.json
+build
+dist
+*.spec
+whisper
+models/
