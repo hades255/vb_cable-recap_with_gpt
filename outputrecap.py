@@ -12,19 +12,15 @@ CHANNELS = 1
 BLOCK_SECONDS = 5
 preferred_name = "CABLE Output (VB-Audio Virtual Cable)"
 preferred_hostapis = {"MME", "Windows DirectSound", "Windows WASAPI"}
-# Or a more specific name like "Microphone (High Definition Audio)"
-MIC_NAME = "Microphone"
 
 model_path = os.path.join(os.path.dirname(__file__), "models", "base.en.pt")
 # model = whisper.load_model("base.en")
 model = whisper.load_model(model_path)
 
-mic_queue = queue.Queue()
-vb_queue = queue.Queue()
+audio_queue = queue.Queue()
 translated_lines = []
 stream = None
-vb_device_index = None
-mic_device_index = None
+DEVICE_INDEX = None
 
 root = tk.Tk()
 root.title("Live Translation Caption")
@@ -34,12 +30,8 @@ text_widget = tk.Text(root, wrap="word", font=(
 text_widget.insert("end", "🔊 Listening for audio...\n")
 text_widget.pack(expand=True, fill="both")
 
-last_user = None
-
-
 def get_hostapi_name(index):
     return sd.query_hostapis()[sd.query_devices(index)['hostapi']]['name']
-
 
 def find_best_vb_cable_device():
     matching_devices = []
@@ -66,36 +58,15 @@ def find_best_vb_cable_device():
     print(f"✅ Selected: [{best[0]}] {best[1]['name']} ({best[2]})")
     return best[0]
 
-
-def find_input_device_by_name(target_name):
-    for i, d in enumerate(sd.query_devices()):
-        if target_name.lower() in d['name'].lower() and d['max_input_channels'] > 0:
-            return i
-    return None
-
-
-def append_text(label, text):
-    global last_user
-    text = text.strip()
-
-    if not text or text.lower() in {"you", ".", "uh", "um"}:
-        return
-
-    if text.startswith("[Error]"):
-        text_widget.insert("end", f"{text}\n")
+def append_text(text):
+    if text.strip():
+        translated_lines.append(text)
+        text_widget.insert("end", text + "\n")
         text_widget.see("end")
-        return
 
-    full_line = f"    {text}" if label == last_user else f"{label}: {text}" 
-    last_user = label
-    translated_lines.append(full_line)
-    text_widget.insert("end", full_line + "\n")
-    text_widget.see("end")
-
-
-def transcribe_loop(label, queue):
+def transcribe_loop():
     while True:
-        audio_block = queue.get()
+        audio_block = audio_queue.get()
         if audio_block is None:
             break
         try:
@@ -103,64 +74,42 @@ def transcribe_loop(label, queue):
             audio = whisper.pad_or_trim(audio)
             result = model.transcribe(
                 audio, fp16=False, task="transcribe", language="en")
-            append_text(label, result['text'].strip())
+            append_text(result["text"].strip())
         except Exception as e:
-            append_text(label, f"[Error]: {e}")
-
+            append_text(f"[Error]: {e}")
 
 def audio_callback(indata, frames, time, status):
     if status:
         print(f"[Audio Status]: {status}")
-    vb_queue.put([indata.copy()])
-
+    audio_queue.put([indata.copy()])
 
 def on_close():
     global stream
     if stream:
-        for s in stream:
-            s.stop()
-            s.close()
-    mic_queue.put(None)
-    vb_queue.put(None)
+        stream.stop()
+        stream.close()
+    audio_queue.put(None)
     filename = f"translated_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
     with open(filename, "w", encoding="utf-8") as f:
         f.write("\n".join(translated_lines))
     print(f"✅ Transcript saved to: {filename}")
     root.destroy()
 
-
 def start_recap():
     global stream
-    threading.Thread(target=transcribe_loop, args=(
-        "me", mic_queue), daemon=True).start()
-    threading.Thread(target=transcribe_loop, args=(
-        "client", vb_queue), daemon=True).start()
-
-    mic_stream = sd.InputStream(device=mic_device_index,
-                                samplerate=SAMPLERATE,
-                                channels=CHANNELS,
-                                dtype='float32',
-                                callback=lambda indata, frames, time, status: mic_queue.put([
-                                                                                            indata.copy()]),
-                                blocksize=int(SAMPLERATE * BLOCK_SECONDS))
-
-    vb_stream = sd.InputStream(device=vb_device_index,
+    threading.Thread(target=transcribe_loop, daemon=True).start()
+    stream = sd.InputStream(device=DEVICE_INDEX,
                             samplerate=SAMPLERATE,
                             channels=CHANNELS,
                             dtype='float32',
                             callback=audio_callback,
                             blocksize=int(SAMPLERATE * BLOCK_SECONDS))
-    mic_stream.start()
-    vb_stream.start()
-    stream = (mic_stream, vb_stream)
+    stream.start()
     root.protocol("WM_DELETE_WINDOW", on_close)
     root.mainloop()
 
-
-vb_device_index = find_best_vb_cable_device()
-mic_device_index = find_input_device_by_name(MIC_NAME)
-
-if vb_device_index is not None and mic_device_index is not None:
+DEVICE_INDEX = find_best_vb_cable_device()
+if DEVICE_INDEX is not None:
     start_recap()
 else:
-    print("❌ Could not find required devices.")
+    print("❌ VB-CABLE input device not found. Exiting.")

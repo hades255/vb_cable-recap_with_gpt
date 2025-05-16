@@ -1,11 +1,16 @@
 # install modules and env
 
-"C:\Program Files\Python311\python" -m venv whisper_env
+### Test
 
-python3.10 -m venv whisper_env
-whisper_env\Scripts\activate
+`"C:\Program Files\Python311\python" -m venv whisper_env`
 
-pip install openai-whisper sounddevice numpy
+or
+
+`python3.10 -m venv whisper_env`
+
+`whisper_env\Scripts\activate`
+
+`pip install openai-whisper sounddevice numpy`
 
 ---
 
