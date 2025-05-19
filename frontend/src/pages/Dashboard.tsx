@@ -20,7 +20,7 @@ import {
   DialogActions,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import { useSocket } from "../contexts/SocketContext";
+import { useSocket } from "@contexts/SocketContext";
 
 const Dashboard: React.FC = () => {
   const theme = useTheme();

@@ -14,9 +14,9 @@ import { Theme } from "@mui/material/styles";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SendIcon from "@mui/icons-material/Send";
-import ChatContent from "../components/home/ChatContent";
-import TokenInput from "../components/home/TokenInput";
-import { useSocket } from "../contexts/SocketContext";
+import ChatContent from "@home/ChatContent";
+import TokenInput from "@home/TokenInput";
+import { useSocket } from "@contexts/SocketContext";
 
 interface ChatPageProps {
   theme: Theme;

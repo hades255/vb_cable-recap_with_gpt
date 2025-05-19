@@ -1,21 +1,23 @@
 import React, { useState, useMemo } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import {
-  IconButton,
-  useMediaQuery,
-} from "@mui/material";
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import { IconButton, useMediaQuery } from "@mui/material";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
 import Brightness7Icon from "@mui/icons-material/Brightness7";
 import { lightTheme, darkTheme } from "./theme";
-import Auth from "./pages/Auth";
-import Dashboard from "./pages/Dashboard";
-import ChatPage from "./pages/ChatPage";
-import { SocketProvider } from "./contexts/SocketContext";
+import Auth from "@pages/Auth";
+import Dashboard from "@pages/Dashboard";
+import ChatPage from "@pages/ChatPage";
+import { SocketProvider } from "@contexts/SocketContext";
 
 // Protected Route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem("token");
   if (!token) {
     return <Navigate to="/auth" replace />;
   }

@@ -6,7 +6,7 @@ import React, {
   useState,
 } from "react";
 import { io, Socket } from "socket.io-client";
-import { SOCKET_URL } from "../config";
+import { SOCKET_URL } from "@config";
 import { Message, ChatResponse, chatPrompt } from "../types";
 
 interface SocketContextType {
