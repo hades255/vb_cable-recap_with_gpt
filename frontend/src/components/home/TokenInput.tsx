@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Button,
@@ -16,6 +17,7 @@ import {
 } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
 import { Theme } from "@mui/material/styles";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 
 interface TokenInputProps {
   token: string;
@@ -23,8 +25,13 @@ interface TokenInputProps {
   handleConnect: () => void;
   showChatSelector: boolean;
   setShowChatSelector: (show: boolean) => void;
-  availableChats: Array<{ token: string; lastMessage: string; timestamp: string }>;
+  availableChats: Array<{
+    token: string;
+    lastMessage: string;
+    timestamp: string;
+  }>;
   handleSelectChat: (token: string) => void;
+  loadAvailableChats: () => Promise<void>;
   theme: Theme;
   ThemeToggle: React.FC;
 }
@@ -37,9 +44,12 @@ const TokenInput: React.FC<TokenInputProps> = ({
   setShowChatSelector,
   availableChats,
   handleSelectChat,
+  loadAvailableChats,
   theme,
   ThemeToggle,
 }) => {
+  const navigate = useNavigate();
+
   return (
     <ThemeProvider theme={theme}>
       <Container maxWidth="sm" sx={{ mt: 4 }}>
@@ -53,7 +63,19 @@ const TokenInput: React.FC<TokenInputProps> = ({
             }}
           >
             <Typography variant="h5">Enter Token to Start</Typography>
-            <ThemeToggle />
+            <Box sx={{ display: "flex", gap: 1 }}>
+              <ThemeToggle />{" "}
+              <Button
+                variant="outlined"
+                onClick={() => {
+                  navigate("/dashboard");
+                }}
+                startIcon={<ArrowBackIcon />}
+                sx={{ minWidth: "auto", px: 2 }}
+              >
+                Back
+              </Button>
+            </Box>
           </Box>
           <Box
             component="form"
@@ -82,6 +104,7 @@ const TokenInput: React.FC<TokenInputProps> = ({
               fullWidth
               variant="outlined"
               onClick={() => {
+                loadAvailableChats();
                 setShowChatSelector(true);
               }}
               sx={{ mt: 1 }}
@@ -105,21 +128,23 @@ const TokenInput: React.FC<TokenInputProps> = ({
         >
           <DialogTitle>Select Previous Chat</DialogTitle>
           <DialogContent sx={{ p: 0 }}>
-            <List sx={{ 
-              maxHeight: "50vh", 
-              overflowY: "auto",
-              p: 2,
-              "&::-webkit-scrollbar": {
-                width: "8px",
-              },
-              "&::-webkit-scrollbar-track": {
-                background: "transparent",
-              },
-              "&::-webkit-scrollbar-thumb": {
-                background: "rgba(255, 255, 255, 0.2)",
-                borderRadius: "4px",
-              },
-            }}>
+            <List
+              sx={{
+                maxHeight: "50vh",
+                overflowY: "auto",
+                p: 2,
+                "&::-webkit-scrollbar": {
+                  width: "8px",
+                },
+                "&::-webkit-scrollbar-track": {
+                  background: "transparent",
+                },
+                "&::-webkit-scrollbar-thumb": {
+                  background: "rgba(255, 255, 255, 0.2)",
+                  borderRadius: "4px",
+                },
+              }}
+            >
               {availableChats.map((chat) => (
                 <ListItem
                   key={chat.token}
@@ -138,11 +163,23 @@ const TokenInput: React.FC<TokenInputProps> = ({
                 >
                   <ListItemText
                     primary={
-                      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <Typography
+                          variant="subtitle1"
+                          sx={{ fontWeight: 500 }}
+                        >
                           {chat.token}
                         </Typography>
-                        <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                        <Typography
+                          variant="caption"
+                          sx={{ color: "text.secondary" }}
+                        >
                           {new Date(chat.timestamp).toLocaleString()}
                         </Typography>
                       </Box>
@@ -167,7 +204,9 @@ const TokenInput: React.FC<TokenInputProps> = ({
               ))}
             </List>
           </DialogContent>
-          <DialogActions sx={{ p: 2, borderTop: "1px solid rgba(255, 255, 255, 0.1)" }}>
+          <DialogActions
+            sx={{ p: 2, borderTop: "1px solid rgba(255, 255, 255, 0.1)" }}
+          >
             <Button onClick={() => setShowChatSelector(false)}>Cancel</Button>
           </DialogActions>
         </Dialog>
@@ -176,4 +215,4 @@ const TokenInput: React.FC<TokenInputProps> = ({
   );
 };
 
-export default TokenInput; 
+export default TokenInput;

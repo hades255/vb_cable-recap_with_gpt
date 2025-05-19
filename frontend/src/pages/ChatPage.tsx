@@ -14,6 +14,7 @@ import { Theme } from "@mui/material/styles";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SendIcon from "@mui/icons-material/Send";
+import DownloadIcon from "@mui/icons-material/Download";
 import ChatContent from "@home/ChatContent";
 import TokenInput from "@home/TokenInput";
 import { useSocket } from "@contexts/SocketContext";
@@ -27,9 +28,10 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme, ThemeToggle }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const chatToken = location.state?.token;
-  const { isConnected, messages, sendMessage, connectWithToken } = useSocket();
+  const { isConnected, messages, sendMessage, connectWithToken, availableChats, loadAvailableChats } = useSocket();
   const [inputMessage, setInputMessage] = useState<string>("");
   const [copySuccess, setCopySuccess] = useState(false);
+  const [showChatSelector, setShowChatSelector] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isFirstLoad = useRef(true);
 
@@ -66,16 +68,40 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme, ThemeToggle }) => {
     }
   };
 
+  const handleDownloadHistory = () => {
+    const chatData = {
+      token: chatToken,
+      messages: messages,
+      exportDate: new Date().toISOString()
+    };
+
+    const blob = new Blob([JSON.stringify(chatData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `chat-history-${chatToken}-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleSelectChat = (token: string) => {
+    navigate(`/chat/${token}`, { state: { token } });
+    setShowChatSelector(false);
+  };
+
   if (!isConnected) {
     return (
       <TokenInput
         token={chatToken || ""}
         setToken={() => {}}
         handleConnect={() => chatToken && connectWithToken(chatToken)}
-        showChatSelector={false}
-        setShowChatSelector={() => {}}
-        availableChats={[]}
-        handleSelectChat={() => {}}
+        loadAvailableChats={loadAvailableChats}
+        showChatSelector={showChatSelector}
+        setShowChatSelector={setShowChatSelector}
+        availableChats={availableChats}
+        handleSelectChat={handleSelectChat}
         theme={theme}
         ThemeToggle={ThemeToggle}
       />
@@ -144,6 +170,15 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme, ThemeToggle }) => {
           </Box>
           <Box sx={{ display: "flex", gap: 1 }}>
             <ThemeToggle />
+            <Tooltip title="Download Chat History">
+              <IconButton
+                color="primary"
+                onClick={handleDownloadHistory}
+                sx={{ mr: 1 }}
+              >
+                <DownloadIcon />
+              </IconButton>
+            </Tooltip>
             <Button
               variant="outlined"
               onClick={() => {
