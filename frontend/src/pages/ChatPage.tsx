@@ -20,7 +20,6 @@ import {
   DialogContent,
   DialogActions,
 } from "@mui/material";
-import { Theme } from "@mui/material/styles";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SendIcon from "@mui/icons-material/Send";
