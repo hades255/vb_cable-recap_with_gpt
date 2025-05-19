@@ -21,7 +21,6 @@ interface TokenInputProps {
   token: string;
   setToken: (token: string) => void;
   handleConnect: () => void;
-  loadAvailableChats: () => void;
   showChatSelector: boolean;
   setShowChatSelector: (show: boolean) => void;
   availableChats: Array<{ token: string; lastMessage: string; timestamp: string }>;
@@ -34,7 +33,6 @@ const TokenInput: React.FC<TokenInputProps> = ({
   token,
   setToken,
   handleConnect,
-  loadAvailableChats,
   showChatSelector,
   setShowChatSelector,
   availableChats,
@@ -84,7 +82,6 @@ const TokenInput: React.FC<TokenInputProps> = ({
               fullWidth
               variant="outlined"
               onClick={() => {
-                loadAvailableChats();
                 setShowChatSelector(true);
               }}
               sx={{ mt: 1 }}
