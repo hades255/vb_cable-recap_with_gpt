@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { Box, Button, Paper, Typography } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
@@ -13,21 +13,52 @@ const ChatContent: React.FC<ChatContentProps> = ({ message }) => {
   const [show, setShow] = useState<Boolean>(false);
   const [copied, setCopied] = useState<Boolean>(false);
 
-  const isUser = message.role === "user";
+  const isUser = useMemo(() => message.role === "user", [message.role]);
 
-  const handleShow = () => {
-    setShow(!show);
-  };
+  const handleShow = useCallback(() => {
+    setShow((prev) => !prev);
+  }, []);
 
-  const handleCopy = async () => {
+  const handleCopy = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(message.content);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000); // Reset after 2 seconds
+      setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error("Failed to copy text: ", err);
     }
-  };
+  }, [message.content]);
+
+  const messageStyles = useMemo(() => ({
+    whiteSpace: "pre-wrap",
+    wordBreak: "break-word",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    display: "-webkit-box",
+    WebkitLineClamp: isUser && !show ? 2 : "unset",
+    WebkitBoxOrient: "vertical",
+    lineHeight: 1.5,
+    transition: "all 0.3s ease-in-out",
+    transform: isUser && !show ? "scale(0.99)" : "scale(1)",
+    opacity: isUser && !show ? 0.9 : 1,
+  }), [isUser, show]);
+
+  const buttonStyles = useMemo(() => ({
+    p: 0,
+    minWidth: "auto",
+    transition: "all 0.2s ease-in-out",
+    "&:hover": {
+      transform: "scale(1.05)",
+    },
+    backgroundColor: isUser ? "primary.main" : "background.paper",
+    color: isUser ? "primary.contrastText" : "text.primary",
+    opacity: 0.7,
+  }), [isUser]);
+
+  const copyButtonStyles = useMemo(() => ({
+    ...buttonStyles,
+    color: copied ? "#e44" : isUser ? "primary.contrastText" : "text.primary",
+  }), [buttonStyles, copied, isUser]);
 
   return (
     <Box
@@ -48,21 +79,7 @@ const ChatContent: React.FC<ChatContentProps> = ({ message }) => {
           wordBreak: "break-word",
         }}
       >
-        <Typography
-          sx={{
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            display: "-webkit-box",
-            WebkitLineClamp: isUser && !show ? 2 : "unset",
-            WebkitBoxOrient: "vertical",
-            lineHeight: 1.5,
-            transition: "all 0.3s ease-in-out",
-            transform: isUser && !show ? "scale(0.99)" : "scale(1)",
-            opacity: isUser && !show ? 0.9 : 1,
-          }}
-        >
+        <Typography sx={messageStyles}>
           {message.content}
         </Typography>
         <Box
@@ -82,17 +99,7 @@ const ChatContent: React.FC<ChatContentProps> = ({ message }) => {
             {isUser && (
               <Button
                 variant="text"
-                sx={{
-                  p: 0,
-                  minWidth: "auto",
-                  transition: "all 0.2s ease-in-out",
-                  "&:hover": {
-                    transform: "scale(1.05)",
-                  },
-                  backgroundColor: isUser ? "primary.main" : "background.paper",
-                  color: isUser ? "primary.contrastText" : "text.primary",
-                  opacity: 0.7,
-                }}
+                sx={buttonStyles}
                 onClick={handleShow}
               >
                 {show ? (
@@ -104,21 +111,7 @@ const ChatContent: React.FC<ChatContentProps> = ({ message }) => {
             )}
             <Button
               variant="text"
-              sx={{
-                p: 0,
-                minWidth: "auto",
-                transition: "all 0.2s ease-in-out",
-                "&:hover": {
-                  transform: "scale(1.05)",
-                },
-                backgroundColor: isUser ? "primary.main" : "background.paper",
-                color: copied
-                  ? "#e44"
-                  : isUser
-                  ? "primary.contrastText"
-                  : "text.primary",
-                opacity: 0.7,
-              }}
+              sx={copyButtonStyles}
               onClick={handleCopy}
             >
               <ContentCopyIcon fontSize="small" />

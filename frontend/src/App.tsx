@@ -58,7 +58,7 @@ function App() {
               path="/dashboard"
               element={
                 <ProtectedRoute>
-                  <Dashboard />
+                  <Dashboard ThemeToggle={ThemeToggle} />
                 </ProtectedRoute>
               }
             />
@@ -66,7 +66,7 @@ function App() {
               path="/chat/:chatId"
               element={
                 <ProtectedRoute>
-                  <ChatPage theme={theme} ThemeToggle={ThemeToggle} />
+                  <ChatPage ThemeToggle={ThemeToggle} />
                 </ProtectedRoute>
               }
             />

@@ -22,7 +22,11 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useSocket } from "@contexts/SocketContext";
 
-const Dashboard: React.FC = () => {
+interface DashboardProps {
+  ThemeToggle: React.FC;
+}
+
+const Dashboard: React.FC<DashboardProps> = ({ ThemeToggle }) => {
   const theme = useTheme();
   const navigate = useNavigate();
   const { availableChats, loadAvailableChats } = useSocket();
@@ -61,16 +65,12 @@ const Dashboard: React.FC = () => {
   return (
     <Box sx={{ flexGrow: 1 }}>
       <AppBar position="static">
-        <Toolbar>
+        <Toolbar sx={{ gap: 2 }}>
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             Interview Recap Dashboard
           </Typography>
-          <Button
-            color="inherit"
-            variant="outlined"
-            onClick={handleNewChat}
-            sx={{ mr: 2 }}
-          >
+          <ThemeToggle />
+          <Button color="inherit" variant="outlined" onClick={handleNewChat}>
             New Chat
           </Button>
           <Button color="inherit" onClick={handleSignOut}>

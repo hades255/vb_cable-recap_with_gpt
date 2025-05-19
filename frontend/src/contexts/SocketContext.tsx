@@ -4,6 +4,7 @@ import React, {
   useContext,
   useEffect,
   useState,
+  useMemo,
 } from "react";
 import { io, Socket } from "socket.io-client";
 import { SOCKET_URL } from "@config";
@@ -43,44 +44,54 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
     Array<{ token: string; lastMessage: string; timestamp: string }>
   >([]);
 
+  // Socket event handlers
+  const handleConnect = useCallback(() => {
+    console.log("Connected to server");
+  }, []);
+
+  const handleChatHistory = useCallback((history: Message[]) => {
+    setMessages(history);
+  }, []);
+
+  const handleChatResponse = useCallback((data: ChatResponse) => {
+    setMessages((prev) => [
+      ...prev,
+      {
+        role: "assistant",
+        content: data.message,
+        timestamp: data.timestamp,
+      },
+    ]);
+  }, []);
+
+  const handleChatPrompt = useCallback((data: chatPrompt) => {
+    setMessages((prev) => [...prev, data.message]);
+  }, []);
+
+  const handleError = useCallback((error: { message: string }) => {
+    console.error("Socket error:", error);
+  }, []);
+
+  // Initialize socket connection
   useEffect(() => {
     const newSocket = io(SOCKET_URL);
     setSocket(newSocket);
 
-    newSocket.on("connect", () => {
-      console.log("Connected to server");
-    });
-
-    newSocket.on("chatHistory", (history: Message[]) => {
-      console.log("a");
-      setMessages(history);
-    });
-
-    newSocket.on("chatResponse", (data: ChatResponse) => {
-      console.log("b");
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: data.message,
-          timestamp: data.timestamp,
-        },
-      ]);
-    });
-
-    newSocket.on("chatPrompt", (data: chatPrompt) => {
-      console.log("c");
-      setMessages((prev) => [...prev, data.message]);
-    });
-
-    newSocket.on("error", (error: { message: string }) => {
-      console.error("Socket error:", error);
-    });
+    newSocket.on("connect", handleConnect);
+    newSocket.on("chatHistory", handleChatHistory);
+    newSocket.on("chatResponse", handleChatResponse);
+    newSocket.on("chatPrompt", handleChatPrompt);
+    newSocket.on("error", handleError);
 
     return () => {
+      newSocket.off("connect", handleConnect);
+      newSocket.off("chatHistory", handleChatHistory);
+      newSocket.off("chatResponse", handleChatResponse);
+      newSocket.off("chatPrompt", handleChatPrompt);
+      newSocket.off("error", handleError);
       newSocket.close();
     };
-  }, []);
+  }, [handleConnect, handleChatHistory, handleChatResponse, handleChatPrompt, handleError]);
 
   const loadAvailableChats = useCallback(async () => {
     try {
@@ -92,8 +103,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, []);
 
-  const sendMessage = (token: string, message: string) => {
-    console.log("d");
+  const sendMessage = useCallback((token: string, message: string) => {
     if (socket && message.trim()) {
       socket.emit("chatMessage", { token, message });
       setMessages((prev) => [
@@ -105,24 +115,35 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
         },
       ]);
     }
-  };
+  }, [socket]);
 
-  const connectWithToken = (token: string) => {
+  const connectWithToken = useCallback((token: string) => {
     if (socket) {
       socket.emit("setToken", token);
       setIsConnected(true);
     }
-  };
+  }, [socket]);
 
-  const value = {
-    socket,
-    isConnected,
-    messages,
-    availableChats,
-    loadAvailableChats,
-    sendMessage,
-    connectWithToken,
-  };
+  const value = useMemo(
+    () => ({
+      socket,
+      isConnected,
+      messages,
+      availableChats,
+      loadAvailableChats,
+      sendMessage,
+      connectWithToken,
+    }),
+    [
+      socket,
+      isConnected,
+      messages,
+      availableChats,
+      loadAvailableChats,
+      sendMessage,
+      connectWithToken,
+    ]
+  );
 
   return (
     <SocketContext.Provider value={value}>{children}</SocketContext.Provider>

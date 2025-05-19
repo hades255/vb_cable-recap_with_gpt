@@ -1,4 +1,10 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   Box,
@@ -26,15 +32,21 @@ import { useSocket } from "@contexts/SocketContext";
 import { SOCKET_URL } from "@config";
 
 interface ChatPageProps {
-  theme: Theme;
   ThemeToggle: React.FC;
 }
 
-const ChatPage: React.FC<ChatPageProps> = ({ theme, ThemeToggle }) => {
+const ChatPage: React.FC<ChatPageProps> = ({ ThemeToggle }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const chatToken = location.state?.token;
-  const { isConnected, messages, sendMessage, connectWithToken, availableChats, loadAvailableChats } = useSocket();
+  const {
+    isConnected,
+    messages,
+    sendMessage,
+    connectWithToken,
+    availableChats,
+    loadAvailableChats,
+  } = useSocket();
   const [inputMessage, setInputMessage] = useState<string>("");
   const [copySuccess, setCopySuccess] = useState(false);
   const [showChatSelector, setShowChatSelector] = useState(false);
@@ -57,7 +69,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme, ThemeToggle }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleCopyToken = async () => {
+  const handleCopyToken = useCallback(async () => {
     if (chatToken) {
       try {
         await navigator.clipboard.writeText(chatToken);
@@ -67,47 +79,57 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme, ThemeToggle }) => {
         console.error("Failed to copy token:", err);
       }
     }
-  };
+  }, [chatToken]);
 
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (inputMessage.trim() && chatToken) {
-      sendMessage(chatToken, inputMessage);
-      setInputMessage("");
-    }
-  };
+  const handleSendMessage = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      if (inputMessage.trim() && chatToken) {
+        sendMessage(chatToken, inputMessage);
+        setInputMessage("");
+      }
+    },
+    [inputMessage, chatToken, sendMessage]
+  );
 
-  const handleDownloadHistory = () => {
+  const handleDownloadHistory = useCallback(() => {
     const chatData = {
       token: chatToken,
       messages: messages,
-      exportDate: new Date().toISOString()
+      exportDate: new Date().toISOString(),
     };
 
-    const blob = new Blob([JSON.stringify(chatData, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(chatData, null, 2)], {
+      type: "application/json",
+    });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = `chat-history-${chatToken}-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `chat-history-${chatToken}-${
+      new Date().toISOString().split("T")[0]
+    }.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  };
+  }, [chatToken, messages]);
 
-  const handleSelectChat = (token: string) => {
-    navigate(`/chat/${token}`, { state: { token } });
-    setShowChatSelector(false);
-  };
+  const handleSelectChat = useCallback(
+    (token: string) => {
+      navigate(`/chat/${token}`, { state: { token } });
+      setShowChatSelector(false);
+    },
+    [navigate]
+  );
 
-  const handleUploadSubmit = async () => {
+  const handleUploadSubmit = useCallback(async () => {
     if (!chatToken || !uploadPrompt.trim() || !uploadResponse.trim()) return;
 
     try {
       const response = await fetch(`${SOCKET_URL}/upload-chat`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           token: chatToken,
@@ -126,7 +148,48 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme, ThemeToggle }) => {
     } catch (error) {
       console.error("Error uploading chat:", error);
     }
-  };
+  }, [chatToken, uploadPrompt, uploadResponse]);
+
+  const handleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setInputMessage(e.target.value);
+    },
+    []
+  );
+
+  const handleUploadPromptChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setUploadPrompt(e.target.value);
+    },
+    []
+  );
+
+  const handleUploadResponseChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setUploadResponse(e.target.value);
+    },
+    []
+  );
+
+  const handleBackToDashboard = useCallback(() => {
+    navigate("/dashboard");
+  }, [navigate]);
+
+  const handleOpenUploadDialog = useCallback(() => {
+    setShowUploadDialog(true);
+  }, []);
+
+  const handleCloseUploadDialog = useCallback(() => {
+    setShowUploadDialog(false);
+  }, []);
+
+  const chatContent = useMemo(
+    () =>
+      messages.map((message, index) => (
+        <ChatContent key={index} message={message} />
+      )),
+    [messages]
+  );
 
   if (!isConnected) {
     return (
@@ -139,7 +202,6 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme, ThemeToggle }) => {
         setShowChatSelector={setShowChatSelector}
         availableChats={availableChats}
         handleSelectChat={handleSelectChat}
-        theme={theme}
         ThemeToggle={ThemeToggle}
       />
     );
@@ -205,13 +267,10 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme, ThemeToggle }) => {
               </IconButton>
             </Tooltip>
           </Box>
-          <Box sx={{ display: "flex", gap: 1 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <ThemeToggle />
             <Tooltip title="Upload Chat">
-              <IconButton
-                color="primary"
-                onClick={() => setShowUploadDialog(true)}
-              >
+              <IconButton color="primary" onClick={handleOpenUploadDialog}>
                 <UploadIcon />
               </IconButton>
             </Tooltip>
@@ -226,9 +285,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme, ThemeToggle }) => {
             </Tooltip>
             <Button
               variant="outlined"
-              onClick={() => {
-                navigate("/dashboard");
-              }}
+              onClick={handleBackToDashboard}
               startIcon={<ArrowBackIcon />}
               sx={{ minWidth: "auto", px: 2 }}
             >
@@ -237,9 +294,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme, ThemeToggle }) => {
           </Box>
         </Box>
         <Box sx={{ flex: 1, overflow: "auto", p: 2 }}>
-          {messages.map((message, index) => (
-            <ChatContent key={index} message={message} />
-          ))}
+          {chatContent}
           <div ref={messagesEndRef} />
         </Box>
         <Box
@@ -253,7 +308,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme, ThemeToggle }) => {
           <TextField
             fullWidth
             value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
+            onChange={handleInputChange}
             placeholder="Type your message..."
             variant="outlined"
             size="small"
@@ -272,42 +327,41 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme, ThemeToggle }) => {
           </Button>
         </Box>
 
-        {/* Upload Dialog */}
         <Dialog
           open={showUploadDialog}
-          onClose={() => setShowUploadDialog(false)}
-          maxWidth="md"
+          onClose={handleCloseUploadDialog}
+          maxWidth="sm"
           fullWidth
         >
           <DialogTitle>Upload Chat</DialogTitle>
           <DialogContent>
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
-              <TextField
-                label="Prompt"
-                multiline
-                rows={4}
-                value={uploadPrompt}
-                onChange={(e) => setUploadPrompt(e.target.value)}
-                fullWidth
-              />
-              <TextField
-                label="Response"
-                multiline
-                rows={4}
-                value={uploadResponse}
-                onChange={(e) => setUploadResponse(e.target.value)}
-                fullWidth
-              />
-            </Box>
+            <TextField
+              fullWidth
+              label="Prompt"
+              multiline
+              rows={4}
+              value={uploadPrompt}
+              onChange={handleUploadPromptChange}
+              margin="normal"
+            />
+            <TextField
+              fullWidth
+              label="Response"
+              multiline
+              rows={4}
+              value={uploadResponse}
+              onChange={handleUploadResponseChange}
+              margin="normal"
+            />
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setShowUploadDialog(false)}>Cancel</Button>
+            <Button onClick={handleCloseUploadDialog}>Cancel</Button>
             <Button
               onClick={handleUploadSubmit}
               variant="contained"
               disabled={!uploadPrompt.trim() || !uploadResponse.trim()}
             >
-              Save
+              Upload
             </Button>
           </DialogActions>
         </Dialog>
