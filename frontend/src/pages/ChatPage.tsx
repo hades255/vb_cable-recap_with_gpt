@@ -9,15 +9,21 @@ import {
   Container,
   IconButton,
   Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import { Theme } from "@mui/material/styles";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SendIcon from "@mui/icons-material/Send";
 import DownloadIcon from "@mui/icons-material/Download";
+import UploadIcon from "@mui/icons-material/Upload";
 import ChatContent from "@home/ChatContent";
 import TokenInput from "@home/TokenInput";
 import { useSocket } from "@contexts/SocketContext";
+import { SOCKET_URL } from "@config";
 
 interface ChatPageProps {
   theme: Theme;
@@ -34,6 +40,9 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme, ThemeToggle }) => {
   const [showChatSelector, setShowChatSelector] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isFirstLoad = useRef(true);
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [uploadPrompt, setUploadPrompt] = useState("");
+  const [uploadResponse, setUploadResponse] = useState("");
 
   useEffect(() => {
     if (isFirstLoad.current) {
@@ -89,6 +98,34 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme, ThemeToggle }) => {
   const handleSelectChat = (token: string) => {
     navigate(`/chat/${token}`, { state: { token } });
     setShowChatSelector(false);
+  };
+
+  const handleUploadSubmit = async () => {
+    if (!chatToken || !uploadPrompt.trim() || !uploadResponse.trim()) return;
+
+    try {
+      const response = await fetch(`${SOCKET_URL}/upload-chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token: chatToken,
+          prompt: uploadPrompt,
+          response: uploadResponse,
+          timestamp: new Date().toISOString(),
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setShowUploadDialog(false);
+        setUploadPrompt("");
+        setUploadResponse("");
+      }
+    } catch (error) {
+      console.error("Error uploading chat:", error);
+    }
   };
 
   if (!isConnected) {
@@ -170,6 +207,14 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme, ThemeToggle }) => {
           </Box>
           <Box sx={{ display: "flex", gap: 1 }}>
             <ThemeToggle />
+            <Tooltip title="Upload Chat">
+              <IconButton
+                color="primary"
+                onClick={() => setShowUploadDialog(true)}
+              >
+                <UploadIcon />
+              </IconButton>
+            </Tooltip>
             <Tooltip title="Download Chat History">
               <IconButton
                 color="primary"
@@ -221,11 +266,51 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme, ThemeToggle }) => {
             variant="contained"
             color="primary"
             disabled={!inputMessage.trim()}
-            sx={{ position: "absolute", bottom: 24, right: 48, minWidth: 0 }}
+            sx={{ position: "absolute", bottom: 24, right: 24, minWidth: 0 }}
           >
             <SendIcon />
           </Button>
         </Box>
+
+        {/* Upload Dialog */}
+        <Dialog
+          open={showUploadDialog}
+          onClose={() => setShowUploadDialog(false)}
+          maxWidth="md"
+          fullWidth
+        >
+          <DialogTitle>Upload Chat</DialogTitle>
+          <DialogContent>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1 }}>
+              <TextField
+                label="Prompt"
+                multiline
+                rows={4}
+                value={uploadPrompt}
+                onChange={(e) => setUploadPrompt(e.target.value)}
+                fullWidth
+              />
+              <TextField
+                label="Response"
+                multiline
+                rows={4}
+                value={uploadResponse}
+                onChange={(e) => setUploadResponse(e.target.value)}
+                fullWidth
+              />
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setShowUploadDialog(false)}>Cancel</Button>
+            <Button
+              onClick={handleUploadSubmit}
+              variant="contained"
+              disabled={!uploadPrompt.trim() || !uploadResponse.trim()}
+            >
+              Save
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Paper>
     </Container>
   );

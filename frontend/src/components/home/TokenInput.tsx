@@ -98,7 +98,7 @@ const TokenInput: React.FC<TokenInputProps> = ({
               onClick={handleConnect}
               sx={{ mt: 2 }}
             >
-              Connect
+              Continue
             </Button>
             <Button
               fullWidth
@@ -109,7 +109,7 @@ const TokenInput: React.FC<TokenInputProps> = ({
               }}
               sx={{ mt: 1 }}
             >
-              Load Previous Chat
+              Load Another Chat
             </Button>
           </Box>
         </Paper>

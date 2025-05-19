@@ -29,34 +29,26 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Initialize chat storage
 initializeChatHistories();
 
-// Store active tokens and their socket connections
 const activeTokens = new Map();
 
-// Add this constant at the top level
-const MAX_CONTEXT_LENGTH = 128000; // GPT-4's maximum context length
-const RESPONSE_BUFFER = 2000; // Buffer for system message and response
+const MAX_CONTEXT_LENGTH = 128000;
+const RESPONSE_BUFFER = 2000;
 const MAX_HISTORY_TOKENS = MAX_CONTEXT_LENGTH - RESPONSE_BUFFER;
 
 function getRelevantHistory(history, maxTokens = MAX_HISTORY_TOKENS) {
-  // Always include the last 5 messages for immediate context
   const recentMessages = history.slice(-5);
 
-  // If we have more messages, try to include earlier context
   if (history.length > 5) {
-    // Get the first message (usually the initial context)
     const firstMessage = history[0];
 
-    // Calculate approximate tokens (rough estimate: 4 chars = 1 token)
     let totalTokens = recentMessages.reduce(
       (sum, msg) => sum + msg.content.length / 4,
       0
     );
     totalTokens += firstMessage.content.length / 4;
 
-    // Add earlier messages if we have space
     const earlierMessages = [];
     for (let i = 1; i < history.length - 5; i++) {
       const msg = history[i];
@@ -102,7 +94,7 @@ io.on("connection", (socket) => {
       const relevantHistory = getRelevantHistory(history);
       const completion = await openai.chat.completions.create({
         model: "gpt-3.5-turbo",
-        // model: "gpt-4",
+        // model: "gpt-4o",
         messages: [
           {
             role: "system",
@@ -172,7 +164,7 @@ app.post("/submit", async (req, res) => {
     const relevantHistory = getRelevantHistory(history);
     const completion = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
-      // model: "gpt-4",
+      // model: "gpt-4o",
       messages: [
         {
           role: "system",
@@ -224,6 +216,42 @@ app.get("/chats/:token", async (req, res) => {
   } catch (error) {
     console.error("Error getting chat history:", error);
     res.status(500).json({ error: "Error getting chat history" });
+  }
+});
+
+app.post("/upload-chat", async (req, res) => {
+  const { token, prompt, response, timestamp } = req.body;
+
+  if (!token || !prompt || !response) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  try {
+    const history = await getChatHistory(token);
+
+    history.push({
+      role: "user",
+      content: prompt,
+      timestamp: timestamp || new Date().toISOString(),
+    });
+
+    history.push({
+      role: "assistant",
+      content: response,
+      timestamp: timestamp || new Date().toISOString(),
+    });
+
+    await saveChatHistory(token, history);
+
+    io.to(token).emit("chatHistory", history);
+
+    res.json({
+      success: true,
+      timestamp: timestamp || new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error("Error uploading chat:", error);
+    res.status(500).json({ error: "Error uploading chat" });
   }
 });
 
