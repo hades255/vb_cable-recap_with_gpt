@@ -29,6 +29,14 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+const MODEL_CONFIG = {
+  development: "gpt-3.5-turbo",
+  production: "gpt-4",
+};
+
+const CURRENT_ENV =
+  process.env.NODE_ENV === "production" ? "production" : "development";
+
 initializeChatHistories();
 
 const activeTokens = new Map();
@@ -93,8 +101,7 @@ io.on("connection", (socket) => {
     try {
       const relevantHistory = getRelevantHistory(history);
       const completion = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
-        // model: "gpt-4o",
+        model: MODEL_CONFIG[CURRENT_ENV],
         messages: [
           {
             role: "system",
@@ -163,8 +170,7 @@ app.post("/submit", async (req, res) => {
 
     const relevantHistory = getRelevantHistory(history);
     const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      // model: "gpt-4o",
+      model: MODEL_CONFIG[CURRENT_ENV],
       messages: [
         {
           role: "system",

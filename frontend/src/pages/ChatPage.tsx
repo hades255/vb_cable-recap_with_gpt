@@ -118,7 +118,7 @@ const ChatPage: React.FC<ChatPageProps> = ({ theme, ThemeToggle }) => {
       });
 
       if (response.ok) {
-        const data = await response.json();
+        await response.json();
         setShowUploadDialog(false);
         setUploadPrompt("");
         setUploadResponse("");
