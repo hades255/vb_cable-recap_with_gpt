@@ -175,7 +175,7 @@ app.post("/submit", async (req, res) => {
         {
           role: "system",
           content:
-            "This is chat history till now in this interview, make valid answer or next sentence, don't need any explanation, only few sentences of answer.",
+            "This is chat history till now in this interview, make these: what does client want to say to me, what can I say to response him. Don't need any explanation, give me only sentences of answer.",
         },
         ...relevantHistory,
       ],
