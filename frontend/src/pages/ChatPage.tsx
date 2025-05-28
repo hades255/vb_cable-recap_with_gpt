@@ -1,34 +1,30 @@
 import React, {
-  useState,
-  useRef,
-  useEffect,
   useCallback,
+  useEffect,
   useMemo,
+  useRef,
+  useState,
 } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   Box,
-  TextField,
   Button,
-  Paper,
-  Typography,
   Container,
-  IconButton,
+  Paper,
+  TextField,
   Tooltip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
+  Typography,
+  IconButton,
 } from "@mui/material";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import SendIcon from "@mui/icons-material/Send";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DownloadIcon from "@mui/icons-material/Download";
+import SendIcon from "@mui/icons-material/Send";
 import UploadIcon from "@mui/icons-material/Upload";
-import ChatContent from "@home/ChatContent";
-import TokenInput from "@home/TokenInput";
 import { useSocket } from "@contexts/SocketContext";
-import { SOCKET_URL } from "@config";
+import ChatContent from "@chat/ChatContent";
+import TokenInput from "@home/TokenInput";
+import UploadNewChat from "@chat/UploadNewChat";
 
 interface ChatPageProps {
   ThemeToggle: React.FC;
@@ -49,11 +45,10 @@ const ChatPage: React.FC<ChatPageProps> = ({ ThemeToggle }) => {
   const [inputMessage, setInputMessage] = useState<string>("");
   const [copySuccess, setCopySuccess] = useState(false);
   const [showChatSelector, setShowChatSelector] = useState(false);
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [deletedItems, setDeletedItems] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isFirstLoad = useRef(true);
-  const [showUploadDialog, setShowUploadDialog] = useState(false);
-  const [uploadPrompt, setUploadPrompt] = useState("");
-  const [uploadResponse, setUploadResponse] = useState("");
 
   useEffect(() => {
     if (isFirstLoad.current) {
@@ -121,51 +116,9 @@ const ChatPage: React.FC<ChatPageProps> = ({ ThemeToggle }) => {
     [navigate]
   );
 
-  const handleUploadSubmit = useCallback(async () => {
-    if (!chatToken || !uploadPrompt.trim() || !uploadResponse.trim()) return;
-
-    try {
-      const response = await fetch(`${SOCKET_URL}/upload-chat`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          token: chatToken,
-          prompt: uploadPrompt,
-          response: uploadResponse,
-          timestamp: new Date().toISOString(),
-        }),
-      });
-
-      if (response.ok) {
-        await response.json();
-        setShowUploadDialog(false);
-        setUploadPrompt("");
-        setUploadResponse("");
-      }
-    } catch (error) {
-      console.error("Error uploading chat:", error);
-    }
-  }, [chatToken, uploadPrompt, uploadResponse]);
-
   const handleInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setInputMessage(e.target.value);
-    },
-    []
-  );
-
-  const handleUploadPromptChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setUploadPrompt(e.target.value);
-    },
-    []
-  );
-
-  const handleUploadResponseChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setUploadResponse(e.target.value);
     },
     []
   );
@@ -182,12 +135,25 @@ const ChatPage: React.FC<ChatPageProps> = ({ ThemeToggle }) => {
     setShowUploadDialog(false);
   }, []);
 
+  const handleDelete = useCallback(
+    (param: string) => {
+      setDeletedItems([...deletedItems, param]);
+    },
+    [deletedItems]
+  );
+
   const chatContent = useMemo(
     () =>
       messages.map((message, index) => (
-        <ChatContent key={index} message={message} />
+        <ChatContent
+          key={index}
+          token={chatToken}
+          message={message}
+          deleted={deletedItems.includes(message.timestamp)}
+          onDelete={handleDelete}
+        />
       )),
-    [messages]
+    [handleDelete, messages, chatToken, deletedItems]
   );
 
   if (!isConnected) {
@@ -326,44 +292,11 @@ const ChatPage: React.FC<ChatPageProps> = ({ ThemeToggle }) => {
           </Button>
         </Box>
 
-        <Dialog
+        <UploadNewChat
           open={showUploadDialog}
           onClose={handleCloseUploadDialog}
-          maxWidth="sm"
-          fullWidth
-        >
-          <DialogTitle>Upload Chat</DialogTitle>
-          <DialogContent>
-            <TextField
-              fullWidth
-              label="Prompt"
-              multiline
-              rows={4}
-              value={uploadPrompt}
-              onChange={handleUploadPromptChange}
-              margin="normal"
-            />
-            <TextField
-              fullWidth
-              label="Response"
-              multiline
-              rows={4}
-              value={uploadResponse}
-              onChange={handleUploadResponseChange}
-              margin="normal"
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCloseUploadDialog}>Cancel</Button>
-            <Button
-              onClick={handleUploadSubmit}
-              variant="contained"
-              disabled={!uploadPrompt.trim() || !uploadResponse.trim()}
-            >
-              Upload
-            </Button>
-          </DialogActions>
-        </Dialog>
+          chatToken={chatToken}
+        />
       </Paper>
     </Container>
   );

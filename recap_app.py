@@ -137,7 +137,7 @@ def append_text(label, text):
         text_widget.see("end")
         return
 
-    full_line = f"{label}: {text}"  #   f"    {text}" if label == last_user else f"{label}: {text}"
+    full_line = f"    {text}" if label == last_user else f"{label}: {text}"
     last_user = label
     translated_lines.append(full_line)
     text_widget.insert("end", full_line + "\n")

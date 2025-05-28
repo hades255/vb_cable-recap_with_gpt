@@ -19,6 +19,7 @@
       "@pages/*": ["./src/pages/*"],
       "@contexts/*": ["./src/contexts/*"],
       "@home/*": ["./src/components/home/*"],
+      "@chat/*": ["./src/components/chat/*"],
       "@config": ["./src/config.tsx"]
     }
   },

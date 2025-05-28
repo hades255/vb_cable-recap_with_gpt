@@ -6,13 +6,9 @@ import {
   Paper,
   Typography,
   List,
-  ListItem,
-  ListItemText,
-  ListItemButton,
   AppBar,
   Toolbar,
   Button,
-  useTheme,
   TextField,
   Dialog,
   DialogTitle,
@@ -21,13 +17,13 @@ import {
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { useSocket } from "@contexts/SocketContext";
+import ChatItem from "@home/ChatItem";
 
 interface DashboardProps {
   ThemeToggle: React.FC;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ ThemeToggle }) => {
-  const theme = useTheme();
   const navigate = useNavigate();
   const { availableChats, loadAvailableChats } = useSocket();
   const [showNewChatDialog, setShowNewChatDialog] = useState(false);
@@ -44,10 +40,6 @@ const Dashboard: React.FC<DashboardProps> = ({ ThemeToggle }) => {
   const handleSignOut = () => {
     localStorage.removeItem("token");
     navigate("/auth");
-  };
-
-  const handleChatSelect = (token: string) => {
-    navigate(`/chat/${token}`, { state: { token } });
   };
 
   const handleNewChat = () => {
@@ -67,7 +59,7 @@ const Dashboard: React.FC<DashboardProps> = ({ ThemeToggle }) => {
       <AppBar position="static">
         <Toolbar sx={{ gap: 2 }}>
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Interview Recap Dashboard
+            Recap
           </Typography>
           <ThemeToggle />
           <Button color="inherit" variant="outlined" onClick={handleNewChat}>
@@ -84,65 +76,11 @@ const Dashboard: React.FC<DashboardProps> = ({ ThemeToggle }) => {
           <Grid item xs={12}>
             <Paper sx={{ p: 2 }}>
               <Typography variant="h5" component="div" gutterBottom>
-                Recent Interviews
+                Recent
               </Typography>
               <List>
                 {availableChats.map((chat) => (
-                  <ListItem
-                    key={chat.token}
-                    disablePadding
-                    sx={{
-                      mb: 1,
-                      border: `1px solid ${theme.palette.divider}`,
-                      borderRadius: 1,
-                      "&:hover": {
-                        backgroundColor: theme.palette.action.hover,
-                      },
-                    }}
-                  >
-                    <ListItemButton
-                      onClick={() => handleChatSelect(chat.token)}
-                    >
-                      <ListItemText
-                        primary={
-                          <Box
-                            sx={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              mt: 0.5,
-                            }}
-                          >
-                            <Typography component="div" variant="subtitle1">
-                              Chat Token: {chat.token}
-                            </Typography>
-                            <Typography
-                              component="span"
-                              variant="caption"
-                              color="text.secondary"
-                            >
-                              {new Date(chat.timestamp).toLocaleString()}
-                            </Typography>
-                          </Box>
-                        }
-                        secondary={
-                          <Typography
-                            component="span"
-                            variant="body2"
-                            color="text.secondary"
-                            sx={{
-                              mt: 0.5,
-                              display: "-webkit-box",
-                              WebkitLineClamp: 2,
-                              WebkitBoxOrient: "vertical",
-                              overflow: "hidden",
-                            }}
-                          >
-                            {chat.lastMessage}
-                          </Typography>
-                        }
-                      />
-                    </ListItemButton>
-                  </ListItem>
+                  <ChatItem key={chat.token} chat={chat} />
                 ))}
               </List>
             </Paper>

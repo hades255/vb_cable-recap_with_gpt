@@ -9,6 +9,8 @@ const {
   getChatHistory,
   saveChatHistory,
   listChatTokens,
+  deleteChat,
+  deleteChatContent,
 } = require("./chatStorage");
 
 const app = express();
@@ -175,7 +177,7 @@ app.post("/submit", async (req, res) => {
         {
           role: "system",
           content:
-            "This is chat history till now in this interview, make these: what does client want to say to me, what can I say to response him. Don't need any explanation, give me only sentences of answer.",
+            "This is chat history till now in this interview, make these: summary what the client is saying, what can I say to response him. Don't need any explanation, give me only answer with one or a few sentences.",
         },
         ...relevantHistory,
       ],
@@ -258,6 +260,45 @@ app.post("/upload-chat", async (req, res) => {
   } catch (error) {
     console.error("Error uploading chat:", error);
     res.status(500).json({ error: "Error uploading chat" });
+  }
+});
+
+// Endpoint to delete chat content while keeping the chat
+app.post("/chats/:token/content", async (req, res) => {
+  try {
+    const { token } = req.params;
+    const { key } = req.body;
+    const success = await deleteChatContent(token, key);
+
+    if (success) {
+      // Notify all clients in the chat room about the content deletion
+      io.to(token).emit("chatContentDeleted", { token, key });
+      res.json({ success: true, message: "Chat content deleted successfully" });
+    } else {
+      res.status(404).json({ error: "Chat not found" });
+    }
+  } catch (error) {
+    console.error("Error deleting chat content:", error);
+    res.status(500).json({ error: "Error deleting chat content" });
+  }
+});
+
+// Endpoint to delete a chat and its content
+app.post("/chats/:token", async (req, res) => {
+  try {
+    const { token } = req.params;
+    const success = await deleteChat(token);
+
+    if (success) {
+      // Notify all clients in the chat room about the deletion
+      io.to(token).emit("chatDeleted", token);
+      res.json({ success: true, message: "Chat deleted successfully" });
+    } else {
+      res.status(404).json({ error: "Chat not found" });
+    }
+  } catch (error) {
+    console.error("Error deleting chat:", error);
+    res.status(500).json({ error: "Error deleting chat" });
   }
 });
 

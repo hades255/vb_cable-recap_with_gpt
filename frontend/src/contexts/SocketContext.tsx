@@ -8,7 +8,7 @@ import React, {
 } from "react";
 import { io, Socket } from "socket.io-client";
 import { SOCKET_URL } from "@config";
-import { Message, ChatResponse, chatPrompt } from "../types";
+import { Message, ChatResponse, chatPrompt, Chat } from "../types";
 
 interface SocketContextType {
   socket: Socket | null;
@@ -40,9 +40,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [availableChats, setAvailableChats] = useState<
-    Array<{ token: string; lastMessage: string; timestamp: string }>
-  >([]);
+  const [availableChats, setAvailableChats] = useState<Chat[]>([]);
 
   // Socket event handlers
   const handleConnect = useCallback(() => {
@@ -68,6 +66,14 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
     setMessages((prev) => [...prev, data.message]);
   }, []);
 
+  const handleChatContentDeleted = useCallback((data: any) => {
+    console.log(data);
+  }, []);
+
+  const handleChatDeleted = useCallback((data: any) => {
+    console.log(data);
+  }, []);
+
   const handleError = useCallback((error: { message: string }) => {
     console.error("Socket error:", error);
   }, []);
@@ -81,6 +87,8 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
     newSocket.on("chatHistory", handleChatHistory);
     newSocket.on("chatResponse", handleChatResponse);
     newSocket.on("chatPrompt", handleChatPrompt);
+    newSocket.on("chatContentDeleted", handleChatContentDeleted);
+    newSocket.on("chatDeleted", handleChatDeleted);
     newSocket.on("error", handleError);
 
     return () => {
@@ -88,10 +96,20 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
       newSocket.off("chatHistory", handleChatHistory);
       newSocket.off("chatResponse", handleChatResponse);
       newSocket.off("chatPrompt", handleChatPrompt);
+      newSocket.off("chatContentDeleted", handleChatContentDeleted);
+      newSocket.off("chatDeleted", handleChatDeleted);
       newSocket.off("error", handleError);
       newSocket.close();
     };
-  }, [handleConnect, handleChatHistory, handleChatResponse, handleChatPrompt, handleError]);
+  }, [
+    handleConnect,
+    handleChatHistory,
+    handleChatResponse,
+    handleChatPrompt,
+    handleError,
+    handleChatContentDeleted,
+    handleChatDeleted,
+  ]);
 
   const loadAvailableChats = useCallback(async () => {
     try {
@@ -103,26 +121,32 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, []);
 
-  const sendMessage = useCallback((token: string, message: string) => {
-    if (socket && message.trim()) {
-      socket.emit("chatMessage", { token, message });
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "user",
-          content: message,
-          timestamp: new Date().toISOString(),
-        },
-      ]);
-    }
-  }, [socket]);
+  const sendMessage = useCallback(
+    (token: string, message: string) => {
+      if (socket && message.trim()) {
+        socket.emit("chatMessage", { token, message });
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "user",
+            content: message,
+            timestamp: new Date().toISOString(),
+          },
+        ]);
+      }
+    },
+    [socket]
+  );
 
-  const connectWithToken = useCallback((token: string) => {
-    if (socket) {
-      socket.emit("setToken", token);
-      setIsConnected(true);
-    }
-  }, [socket]);
+  const connectWithToken = useCallback(
+    (token: string) => {
+      if (socket) {
+        socket.emit("setToken", token);
+        setIsConnected(true);
+      }
+    },
+    [socket]
+  );
 
   const value = useMemo(
     () => ({
